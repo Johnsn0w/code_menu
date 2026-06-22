@@ -1,0 +1,9 @@
+print battery stats:
+  command: upower -i $(upower -e | grep BAT)
+  tags: ["bash"]
+  meta: ...
+
+git cheatsheet:
+  command: echo testing
+  tags: ["bash"]
+  meta: ...
