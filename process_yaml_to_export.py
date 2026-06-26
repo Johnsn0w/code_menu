@@ -1,16 +1,9 @@
-import yaml
+import yaml, json
 from dataclasses import dataclass
 import pathlib
 from textwrap import dedent
 import os
-
-with open("db.yaml", "r") as db_file:
-    db = yaml.safe_load(db_file)
-
-
-for k, v in db.items():
-    print(v["command"])
-
+from pprint import pprint as print
 
 @dataclass
 class Command:
@@ -24,8 +17,8 @@ class Paths:
     export_dir = "./exported/"
     if not os.path.exists(export_dir):
         os.makedirs(export_dir)
-    print("trace")
     bash = export_dir + "_bash"
+    ps   = "./poweshell/_ps"
 
 def replace_spaces(_string):
     return _string.replace(" ", "_")
@@ -35,14 +28,22 @@ class App:
         with open("db.yaml", "r") as db_file:
             self.db = yaml.safe_load(db_file)
         self.commands = []
-        for k, v in db.items():
+        for k, v in self.db.items():
             self.commands.append(
                 Command(name=k, command=v["command"], tags=v.get("tags", [])))
         self.test()
+        print(self.db)
+
 
     def test(self):
-        print(self.commands)
+        # print(self.commands)
         self.export_to_bash_functions()
+        self.export_to_json()
+        pass
+
+    def export_to_json(self):
+        with open(PATHS.ps, "w") as file:
+            file.write(json.dumps(self.db, indent=2))
 
     def export_to_bash_functions(self):
         bash_cmds: list[Command] = [
