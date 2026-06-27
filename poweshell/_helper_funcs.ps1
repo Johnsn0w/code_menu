@@ -44,7 +44,17 @@ function GetCharacterAtPos {
 
 function MoveCursor {
     param ( $_Direction )
-    $CursorIndex[0] += $_Direction
+    # $CursorIndex[0] += $_Direction
+    $mv_result = $CursorIndex[0] + $_Direction
+
+    if ($CursorIndex) {
+        $CursorIndex[0] = $mv_result
+        return
+    }
+    if ($mv_result -gt 0 ) {
+        $CursorIndex[0] = $mv_result
+    }
+
     # HighlightRange `
     #     -_Start ([Coordinates]::new($CursorIndex[0], 0)) `
     #     -_End   ([Coordinates]::new($CursorIndex[0], 5)) `

@@ -27,7 +27,7 @@ $K = @{
     UP_DOWN       = [ConsoleKey]::UpArrow, [ConsoleKey]::DownArrow;
 
 }
-
+[Console]::CursorVisible = $false
 $temp = [Dictionary[string,int]]::new()
 $temp.Add("UP", -1) ; $temp.Add("DOWN", 1)
 $DIRECTION = [ReadOnlyDictionary[string,int]]::new($temp)
@@ -57,6 +57,7 @@ function ProcessUserInput {
             { $_.VirtualKeyCode -eq $K.BACKSPACE } {
                 if (-not $_PreviousUserInput) { break } # dont try erase from empty list
                 $UpdatedInput = $_PreviousUserInput.Substring(0, $_PreviousUserInput.Length - 1)
+                $CursorIndex[0] = 0
                 break
             }
             {$_.VirtualKeyCode -in $K.DOWN} { MoveCursor $DIRECTION.DOWN ; break }
@@ -69,6 +70,7 @@ function ProcessUserInput {
             #endregion
             Default {
                 $UpdatedInput = $_PreviousUserInput + $_.Character
+                $CursorIndex[0] = 0
             }
         }      
         return $UpdatedInput
@@ -76,7 +78,9 @@ function ProcessUserInput {
 }
 
 
-function execute_selection() {}
+function execute_selection() {
+    # Read-Host "Exec cursor index: $CursorIndex"
+}
 
 function main() {
 
