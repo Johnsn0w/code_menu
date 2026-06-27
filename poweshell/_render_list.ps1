@@ -7,8 +7,8 @@ $script:first_run = $true
 function RenderList {
     [CmdletBinding(PositionalBinding = $false)]
     param(
-        [array]$_List = @(),
-        [string]$_UserInput = " "
+        [array]$_List,
+        [string]$_UserInput
     )
     if (-not $script:first_run) {
         [Console]::SetCursorPosition(0, 0)
@@ -20,12 +20,12 @@ function RenderList {
     if (-not $_List){
         return
     }
-    $index = 0
+    # for ($item -in $_List){
+    #     Write-Host $item
+    # }
     for ($i = 0; $i -lt $_List.Count; $i++) {
         Write-Host "$($i + 1). $($_List[$i])"
-        $index += 1
     }
-    # $index += 3
 }
 
 
