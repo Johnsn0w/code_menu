@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest 
 $ErrorActionPreference = "Stop"
-
+. "${PSScriptRoot}\_helper_funcs.ps1"
 $script:first_run = $true
 
 
@@ -10,7 +10,7 @@ function RenderList {
         [array]$_List,
         [string]$_UserInput
     )
-    if (-not $script:first_run) {
+    if (-not $script:first_run) { # prevent overwriting pre-existing buffer
         [Console]::SetCursorPosition(0, 0)
     }
     generate_blank_window
@@ -20,12 +20,19 @@ function RenderList {
     if (-not $_List){
         return
     }
-    # for ($item -in $_List){
-    #     Write-Host $item
-    # }
-    for ($i = 0; $i -lt $_List.Count; $i++) {
-        Write-Host "$($i + 1). $($_List[$i])"
+    foreach ($item in $_List){
+        Write-Host $item
     }
+    if ($CursorIndex[0]) {
+        HighlightRange `
+            -_Start ([Coordinates]::new($CursorIndex[0], 0)) `
+            -_End   ([Coordinates]::new($CursorIndex[0], 5)) `
+            -_Bg    ([System.ConsoleColor]::DarkYellow)
+    }
+
+    # for ($i = 0; $i -lt $_List.Count; $i++) {
+    #     Write-Host "$($i + 1). $($_List[$i])"
+    # }
 }
 
 
@@ -49,5 +56,6 @@ function main {
 }
 
 If ($MyInvocation.InvocationName -ne ".") {
+    New-Variable -Name CursorIndex -Value ([int[]]@(0)) -Option Constant
     main
 }

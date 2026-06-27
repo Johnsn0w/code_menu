@@ -28,14 +28,14 @@ function filter_table_by_cmd_name {
     param (
         $_Table,
         [string]$_NameStrFilter
-    )
-    $_Table.GetEnumerator() |
-    Where-Object { $_.Key -like "*$_NameStrFilter*" }        
+    ) 
+    $_Table.keys | Where-Object { $_ -like "*$_NameStrFilter*" }
         
 }
     
     
-If ($MyInvocation.InvocationName -ne ".") { # like pythons __main__
+If ($MyInvocation.InvocationName -ne ".") {
+    # like pythons __main__
     Write-Host "NOT SOURCED"
     Set-StrictMode -Version Latest 
     $ErrorActionPreference = "Stop"
