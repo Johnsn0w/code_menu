@@ -21,6 +21,12 @@ ps_test:
   tags: ["ps", "win"]
   meta: ...
 
+print env vars:
+  command: | 
+      ls Env:
+  tags: ["ps", "win"]
+  meta: ...
+
 reboot to uefi menu:
   command: | 
     # Check if running as Administrator

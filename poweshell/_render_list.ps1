@@ -20,6 +20,12 @@ function RenderList {
     if (-not $_List){
         return
     }
+    
+    $WindowHeight = ($Host.UI.RawUI.WindowSize.Height - 3)
+    if ($_List.Count -gt $WindowHeight){
+        $_List = $_List[0..$WindowHeight]
+    }
+
     foreach ($item in $_List){
         Write-Host $item
     }
@@ -29,10 +35,6 @@ function RenderList {
             -_End   ([Coordinates]::new($CursorIndex[0], 5)) `
             -_Bg    ([System.ConsoleColor]::DarkYellow)
     }
-
-    # for ($i = 0; $i -lt $_List.Count; $i++) {
-    #     Write-Host "$($i + 1). $($_List[$i])"
-    # }
 }
 
 
@@ -49,11 +51,19 @@ function generate_blank_window {
 
 
 function main {
-    $items = 1..8 | ForEach-Object { $_.ToString() + "item" }
-    # Write-Host ('x' * $Host.UI.RawUI.WindowSize.Width)
+    $items = 1..20 | ForEach-Object { $_.ToString() + "item" }
     RenderList -_List $items -_UserInput "a"
 
 }
+
+function RenderItemInfo {
+    param($_Item)
+    generate_blank_window
+    Write-Host "--------- ${_Item} ---------"
+    Write-Host $_Item.command
+    Read-Host  "Press enter to return to menu..."
+}
+
 
 If ($MyInvocation.InvocationName -ne ".") {
     New-Variable -Name CursorIndex -Value ([int[]]@(0)) -Option Constant

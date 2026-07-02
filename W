@@ -1,0 +1,57 @@
+# irm "s6h.xyz/w" | iex
+$TempFile = "${env:TEMP}\temp_execution_script.ps1"
+$ScriptUrl = "s6h.xyz/w" # this script should have initially been called with `irm <url> | iex`. and this var should be set to the same <url>
+$DotEnvDev = ".\.env_dev"
+$DotEnvProd = ".\.env"
+
+$username    = "Johnsn0w"
+$folder      = "ps"
+$api_path = "https://api.github.com/repos/$username/page/contents/$folder"
+$raw_path    = "https://raw.githubusercontent.com/$username/page/main/$folder/"
+
+# $raw_path
+# Invoke-RestMethod "https://raw.githubusercontent.com/Johnsn0w/page/main/ps/"
+
+# $api_path 
+clear
+# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/ps") | Get-Member
+
+# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/ps")
+# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/ps") | Select-Object name, download_url, type
+# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/ps") | Where-Object {$_.name -like "*.md" } 
+# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/ps") | Where-Object {$_.name -like "*.md" } 
+
+# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/") | Select-Object name, download_url, type
+(Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/") | Where-Object { $_.type -eq "dir" }
+
+
+
+
+
+
+
+
+exit
+function LoadDotEnv() { param($_File)
+    Get-Content $_File | ForEach-Object { $_ }
+}
+
+if (Test-Path $DotEnvDev) { LoadDotEnv( $DotEnvDev ) }
+else { 
+    LoadDotEnv( $DotEnvProd ) 
+}
+
+
+function ElevateToAdmin {
+    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Invoke-RestMethod "$ScriptUrl" -OutFile $TempFile
+        Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$TempFile`"" -Verb RunAs
+        exit
+    }
+}
+ElevateToAdmin
+Read-Host "won't reach this unless this script is identical to the url"
+Remove-Item -Path $TempFile
+
+
+

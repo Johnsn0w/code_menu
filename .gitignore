@@ -1,4 +1,5 @@
 .*
-!.gitignore
-exported/*
 *.json
+*.log
+!.gitignore
+

@@ -1,0 +1,6 @@
+{
+    "files.exclude": {
+        "W": true,
+        "L": true
+    }
+}
