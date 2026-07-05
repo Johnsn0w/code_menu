@@ -1,57 +1,41 @@
-# irm "s6h.xyz/w" | iex
-$TempFile = "${env:TEMP}\temp_execution_script.ps1"
-$ScriptUrl = "s6h.xyz/w" # this script should have initially been called with `irm <url> | iex`. and this var should be set to the same <url>
-$DotEnvDev = ".\.env_dev"
-$DotEnvProd = ".\.env"
+Set-StrictMode -Version Latest 
+$ErrorActionPreference = "Stop"
 
-$username    = "Johnsn0w"
-$folder      = "ps"
-$api_path = "https://api.github.com/repos/$username/page/contents/$folder"
-$raw_path    = "https://raw.githubusercontent.com/$username/page/main/$folder/"
+$RepoName = "code_menu"
+$UserName = "Johnsn0w"
+# $BaseContentsUrl = "https://api.github.com/repos/Johnsn0w/code_menu/contents/"
+$BaseApiUrl = "https://api.github.com/repos/$UserName/$RepoName/"
+$BaseRawUrl = "https://raw.githubusercontent.com/$UserName/$RepoName/main/"
+$ScriptEntryPoint = "powershell\main.ps1"
 
-# $raw_path
-# Invoke-RestMethod "https://raw.githubusercontent.com/Johnsn0w/page/main/ps/"
-
-# $api_path 
-clear
-# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/ps") | Get-Member
-
-# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/ps")
-# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/ps") | Select-Object name, download_url, type
-# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/ps") | Where-Object {$_.name -like "*.md" } 
-# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/ps") | Where-Object {$_.name -like "*.md" } 
-
-# (Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/") | Select-Object name, download_url, type
-(Invoke-RestMethod "https://api.github.com/repos/Johnsn0w/page/contents/") | Where-Object { $_.type -eq "dir" }
+$IsDevEnv = $PSScriptRoot
+# $SkipElevation = $true
+$SkipElevation = $false
 
 
-
-
-
-
-
-
-exit
-function LoadDotEnv() { param($_File)
-    Get-Content $_File | ForEach-Object { $_ }
-}
-
-if (Test-Path $DotEnvDev) { LoadDotEnv( $DotEnvDev ) }
-else { 
-    LoadDotEnv( $DotEnvProd ) 
-}
-
-
-function ElevateToAdmin {
-    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Invoke-RestMethod "$ScriptUrl" -OutFile $TempFile
-        Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$TempFile`"" -Verb RunAs
-        exit
+function DownloadRepoFiles(){
+    $ZipPath = "${TempFilesPath}\.repo.zip"
+    If (-not (Test-Path $ZipPath)) {
+        New-Item -ItemType Directory -Path $TempFilesPath
+        Invoke-RestMethod -Uri "https://api.github.com/repos/$USERNAME/$REPO/zipball" -OutFile $ZipPath
+        Expand-Archive -Path $ZipPath -DestinationPath "$PSScriptRoot\ps_temp_files\"
     }
 }
-ElevateToAdmin
-Read-Host "won't reach this unless this script is identical to the url"
-Remove-Item -Path $TempFile
 
+if(-not $IsDevEnv){
+    Read-Host "trace"
+    $TempFilesPath = "${env:TEMP}\ps_temp_files\"
+    DownloadRepoFiles
+    $NewDir = (Get-ChildItem -Path $TempFilesPath -Directory -Filter "${UserName}*").BaseName
+    $RepoDir = "$TempFilesPath\$NewDir\" 
+    $MainScript = "$RepoDir\$ScriptEntrypoint"
+} else {
+    $MainScript = "$PSScriptRoot\$ScriptEntryPoint"
+}
 
-
+If($SkipElevation){
+    . $MainScript
+}else{
+    Set-Location "$PSScriptRoot\powershell"
+    Start-Process powershell -ArgumentList "-NoExit -NoProfile -ExecutionPolicy Bypass -File `"$MainScript`"" -Verb RunAs
+}

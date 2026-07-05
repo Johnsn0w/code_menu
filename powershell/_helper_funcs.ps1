@@ -3,6 +3,7 @@ using namespace System.Collections
 using namespace System.Collections.Generic
 using namespace System.Management.Automation.Host
 using namespace System.Collections.ObjectModel
+. "${PSScriptRoot}\_global_source.ps1"
 
 $temp = [Dictionary[string, int]]::new()
 $temp.Add("UP", -1) ; $temp.Add("DOWN", 1)
@@ -50,33 +51,12 @@ function MoveCursor {
     if ($mv_result -lt 0 ) {return}
     if ($mv_result -gt $CurrentList.Count ) {return}
     $CursorIndex[0] = $mv_result
-    # if ($CursorIndex) {
-    #     $CursorIndex[0] = $mv_result
-    #     return
-    # }
-    # if ($mv_result -gt 0 ) {
-    #     $CursorIndex[0] = $mv_result
-    # }
-
-    # calc mv result
-    # if mv result < 0 return
-    # if mv result > CurrentItems.Count
-
-
-    # HighlightRange `
-    #     -_Start ([Coordinates]::new($CursorIndex[0], 0)) `
-    #     -_End   ([Coordinates]::new($CursorIndex[0], 5)) `
-    #     -_Bg    ([System.ConsoleColor]::DarkYellow)
 }
 
 
 function main {
-    # MoveCursor $DIRECTION.DOWN
     New-Variable -Name CursorIndex -Value ([int[]]@(0)) -Option Constant
     New-Variable -Name CurrentList -Value ([List[string]]::new()) -Option Constant
-    $start = [Coordinates]::new(0, 0)
-    $end = [Coordinates]::new(5, 20)
-    $bg_color = [System.ConsoleColor]::DarkYellow
     HighlightRange `
         -_Start ([Coordinates]::new($CursorIndex[0], 0)) `
         -_End   ([Coordinates]::new($CursorIndex[0], 5)) `

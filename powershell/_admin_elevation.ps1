@@ -1,3 +1,4 @@
+. "${PSScriptRoot}\_global_source.ps1"
 function ElevateToAdmin {
     param([switch]$_Force)
     if (-not $_Force) {

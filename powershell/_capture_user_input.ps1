@@ -1,3 +1,4 @@
+. "${PSScriptRoot}\_global_source.ps1"
 $K = @{
     BACKSPACE     = [int][ConsoleKey]::Backspace;
     MODIFIER_KEYS = [int][ConsoleModifiers]::Alt, [ConsoleModifiers]::Control, [ConsoleModifiers]::Shift;

@@ -1,5 +1,6 @@
 Set-StrictMode -Version Latest 
 $ErrorActionPreference = "Stop"
+. "${PSScriptRoot}\_global_source.ps1"
 . "${PSScriptRoot}\_helper_funcs.ps1"
 $script:first_run = $true
 

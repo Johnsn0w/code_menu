@@ -1,6 +1,13 @@
 {
+
+    "files.watcherExclude": {
+        "**/.**": true
+    },
+    "search.exclude": {
+        "**/.**": true
+    },
     "files.exclude": {
-        "W": true,
-        "L": true
+        "L": true,
+        "W": true
     }
 }

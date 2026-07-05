@@ -1,8 +1,8 @@
 import yaml, json
 from dataclasses import dataclass
-import pathlib
+from pathlib import Path
 from textwrap import dedent
-import os
+import os, sys
 from pprint import pprint as print
 
 @dataclass
@@ -14,11 +14,12 @@ class Command:
 
 @dataclass
 class Paths:
-    export_dir = "./exported/"
+    main_dir = Path(__file__).parent.parent
+    export_dir = rf"{main_dir}\exports"
     if not os.path.exists(export_dir):
         os.makedirs(export_dir)
-    bash = export_dir + "_bash"
-    ps   = "./poweshell/_ps"
+    bash = export_dir + r"\_bash"
+    ps = export_dir + r"\_ps.json"
 
 def replace_spaces(_string):
     return _string.replace(" ", "_")
@@ -31,15 +32,6 @@ class App:
         for k, v in self.db.items():
             self.commands.append(
                 Command(name=k, command=v["command"], tags=v.get("tags", [])))
-        self.test()
-        print(self.db)
-
-
-    def test(self):
-        # print(self.commands)
-        self.export_to_bash_functions()
-        self.export_to_json()
-        pass
 
     def export_to_json(self):
         with open(PATHS.ps, "w") as file:
@@ -68,3 +60,5 @@ class App:
 if __name__ == "__main__":
     PATHS = Paths()
     app = App()
+    app.export_to_bash_functions()
+    app.export_to_json()
