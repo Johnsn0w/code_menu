@@ -1,3 +1,5 @@
+#### Simple script to download the repo zip to the system temp directory, extract files, and launch `main.ps1` elevated
+
 Set-StrictMode -Version Latest 
 $ErrorActionPreference = "Stop"
 
@@ -12,12 +14,12 @@ $IsDevEnv = $PSScriptRoot
 # $SkipElevation = $true
 $SkipElevation = $false
 
-
+ 
 function DownloadRepoFiles(){
     $ZipPath = "${TempFilesPath}\.repo.zip"
     If (-not (Test-Path $ZipPath)) {
         New-Item -ItemType Directory -Path $TempFilesPath
-        Invoke-RestMethod -Uri "https://api.github.com/repos/$USERNAME/$REPO/zipball" -OutFile $ZipPath
+        Invoke-RestMethod -Uri "$BaseApiUrl/zipball" -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath "$PSScriptRoot\ps_temp_files\"
     }
 }
