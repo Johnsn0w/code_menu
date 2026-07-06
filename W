@@ -1,5 +1,5 @@
 #### Simple script to download the repo zip to the system temp directory, extract files, and launch `main.ps1` elevated
-
+param($SkipElevation = $false)
 Set-StrictMode -Version Latest 
 $ErrorActionPreference = "Stop"
 
@@ -45,6 +45,5 @@ If ($SkipElevation) {
     . $MainScript
 }
 else {
-    Set-Location "$PSScriptRoot\powershell"
     Start-Process powershell -ArgumentList "-NoExit -NoProfile -ExecutionPolicy Bypass -File `"$MainScript`"" -Verb RunAs
 }
