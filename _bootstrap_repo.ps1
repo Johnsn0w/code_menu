@@ -1,7 +1,7 @@
 #### Simple script to download the repo zip to the system temp directory, extract files, and launch `main.ps1` elevated
 param(
     [switch]$SkipElevation = $true,
-    $ScriptEntryPoint
+    $ScriptEntryPoint  # = "powershell\main.ps1"
     )
 if(-not $ScriptEntryPoint) {throw "SAM: ERROR $PSScriptRoot MISSING REQUIRED PARAM"}
 
@@ -16,6 +16,7 @@ $TempFilesPath = "${env:TEMP}\ps_temp_files"
 $ZipPath = "${TempFilesPath}\.repo.zip"
 
 $IsDevEnv = $PSScriptRoot
+$IsDevEnv = $false
 
 
 function DownloadRepoFiles() {
@@ -26,7 +27,7 @@ function DownloadRepoFiles() {
         Invoke-RestMethod -Uri "$BaseApiUrl/zipball" -OutFile $ZipPath
     }
     if ( -not (GetUnpackedRepoPath) ) {
-        Expand-Archive -Path $ZipPath -DestinationPath "$PSScriptRoot\ps_temp_files\"
+        Expand-Archive -Path $ZipPath -DestinationPath "$TempFilesPath"
     } }
 
 function GetUnpackedRepoPath() {
