@@ -5,39 +5,46 @@ $ErrorActionPreference = "Stop"
 
 $RepoName = "code_menu"
 $UserName = "Johnsn0w"
-# $BaseContentsUrl = "https://api.github.com/repos/Johnsn0w/code_menu/contents/"
-$BaseApiUrl = "https://api.github.com/repos/$UserName/$RepoName/"
-$BaseRawUrl = "https://raw.githubusercontent.com/$UserName/$RepoName/main/"
+$BaseApiUrl = "https://api.github.com/repos/$UserName/$RepoName"
+$BaseRawUrl = "https://raw.githubusercontent.com/$UserName/$RepoName/main"
 $ScriptEntryPoint = "powershell\main.ps1"
+$TempFilesPath = "${env:TEMP}\ps_temp_files"
+$ZipPath = "${TempFilesPath}\.repo.zip"
 
 $IsDevEnv = $PSScriptRoot
-# $SkipElevation = $true
-$SkipElevation = $false
 
- 
-function DownloadRepoFiles(){
-    $ZipPath = "${TempFilesPath}\.repo.zip"
-    If (-not (Test-Path $ZipPath)) {
+
+function DownloadRepoFiles() {
+    If (-not (Test-Path $TempFilesPath)) {
         New-Item -ItemType Directory -Path $TempFilesPath
-        Invoke-RestMethod -Uri "$BaseApiUrl/zipball" -OutFile $ZipPath
-        Expand-Archive -Path $ZipPath -DestinationPath "$PSScriptRoot\ps_temp_files\"
     }
+    If (-not (Test-Path $ZipPath)) {
+        Invoke-RestMethod -Uri "$BaseApiUrl/zipball" -OutFile $ZipPath
+    }
+    if ( -not (GetUnpackedRepoPath) ) {
+        Expand-Archive -Path $ZipPath -DestinationPath "$PSScriptRoot\ps_temp_files\"
+    } }
+
+function GetUnpackedRepoPath() {
+    if ( -not (Test-Path "$TempFilesPath\${UserName}*") ) { 
+        return }
+    $UnpackedRepoPath = (Get-ChildItem "$TempFilesPath\${UserName}*").FullName
+    return $UnpackedRepoPath
 }
 
-if(-not $IsDevEnv){
-    Read-Host "trace"
-    $TempFilesPath = "${env:TEMP}\ps_temp_files\"
-    DownloadRepoFiles
-    $NewDir = (Get-ChildItem -Path $TempFilesPath -Directory -Filter "${UserName}*").BaseName
-    $RepoDir = "$TempFilesPath\$NewDir\" 
-    $MainScript = "$RepoDir\$ScriptEntrypoint"
-} else {
+if ($IsDevEnv) {
     $MainScript = "$PSScriptRoot\$ScriptEntryPoint"
 }
+else {
+    DownloadRepoFiles
+    $RepoPath = GetUnpackedRepoPath
+    $MainScript = "$RepoPath\$ScriptEntrypoint"
+}
 
-If($SkipElevation){
+If ($SkipElevation) {
     . $MainScript
-}else{
+}
+else {
     Set-Location "$PSScriptRoot\powershell"
     Start-Process powershell -ArgumentList "-NoExit -NoProfile -ExecutionPolicy Bypass -File `"$MainScript`"" -Verb RunAs
 }

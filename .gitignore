@@ -1,6 +1,7 @@
 .*
-*.json
+# *.json
 *.log
 !.gitignore
 
 !.env
+/ps_temp_files/*

@@ -1,0 +1,49 @@
+{
+  "print battery stats": {
+    "command": "upower -i $(upower -e | grep BAT)",
+    "tags": [
+      "bash"
+    ],
+    "meta": "..."
+  },
+  "git cheatsheet": {
+    "command": "echo testing",
+    "tags": [
+      "bash"
+    ],
+    "meta": "..."
+  },
+  "git ammend": {
+    "command": "git commit --amend --no-edit",
+    "tags": [
+      "git",
+      "bash",
+      "win"
+    ],
+    "meta": "..."
+  },
+  "ps_test": {
+    "command": "Write-Output \"ps test 1\"\nWrite-Output \"ps test 2\"\nnet session\n",
+    "tags": [
+      "ps",
+      "win"
+    ],
+    "meta": "..."
+  },
+  "print env vars": {
+    "command": "ls Env:\n",
+    "tags": [
+      "ps",
+      "win"
+    ],
+    "meta": "..."
+  },
+  "reboot to uefi menu": {
+    "command": "# Check if running as Administrator\nif (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {\n    $scriptPath = $PSCommandPath\n    $workingDir = Get-Location  # Capture current directory\n    Start-Process powershell -ArgumentList \"-NoProfile -ExecutionPolicy Bypass -File `\"$scriptPath`\" -WorkingDirectory `\"$workingDir`\"\" -Verb RunAs\n    exit\n}\n\nRead-Host \"Press enter to reboot into advanced boot options.....\"\nRead-Host \"Ok just double-checking, press enter again.....\"\n\n#shutdown /r /o /soft /t 0\n\nRead-Host \"rebooting...\"\n",
+    "tags": [
+      "ps",
+      "win"
+    ],
+    "meta": "..."
+  }
+}
