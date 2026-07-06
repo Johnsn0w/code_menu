@@ -1,49 +1,7 @@
-#### Simple script to download the repo zip to the system temp directory, extract files, and launch `main.ps1` elevated
-param($SkipElevation = $false)
-Set-StrictMode -Version Latest 
-$ErrorActionPreference = "Stop"
+$BaseRawUrl = "https://raw.githubusercontent.com/Johnsn0w/code_menu/refs/heads/main"
+$BootStrapperScript = "_bootstrap_repo.ps1"
+$ScriptToLaunch = "powershell\main.ps1"
 
-$RepoName = "code_menu"
-$UserName = "Johnsn0w"
-$BaseApiUrl = "https://api.github.com/repos/$UserName/$RepoName"
-$BaseRawUrl = "https://raw.githubusercontent.com/$UserName/$RepoName/main"
-$ScriptEntryPoint = "powershell\main.ps1"
-$TempFilesPath = "${env:TEMP}\ps_temp_files"
-$ZipPath = "${TempFilesPath}\.repo.zip"
-
-$IsDevEnv = $PSScriptRoot
-
-
-function DownloadRepoFiles() {
-    If (-not (Test-Path $TempFilesPath)) {
-        New-Item -ItemType Directory -Path $TempFilesPath
-    }
-    If (-not (Test-Path $ZipPath)) {
-        Invoke-RestMethod -Uri "$BaseApiUrl/zipball" -OutFile $ZipPath
-    }
-    if ( -not (GetUnpackedRepoPath) ) {
-        Expand-Archive -Path $ZipPath -DestinationPath "$PSScriptRoot\ps_temp_files\"
-    } }
-
-function GetUnpackedRepoPath() {
-    if ( -not (Test-Path "$TempFilesPath\${UserName}*") ) { 
-        return }
-    $UnpackedRepoPath = (Get-ChildItem "$TempFilesPath\${UserName}*").FullName
-    return $UnpackedRepoPath
-}
-
-if ($IsDevEnv) {
-    $MainScript = "$PSScriptRoot\$ScriptEntryPoint"
-}
-else {
-    DownloadRepoFiles
-    $RepoPath = GetUnpackedRepoPath
-    $MainScript = "$RepoPath\$ScriptEntrypoint"
-}
-
-If ($SkipElevation) {
-    . $MainScript
-}
-else {
-    Start-Process powershell -ArgumentList "-NoExit -NoProfile -ExecutionPolicy Bypass -File `"$MainScript`"" -Verb RunAs
-}
+. ([scriptblock]::Create(
+        (Invoke-RestMethod "$BaseRawUrl/$BootStrapperScript"))
+) $ScriptToLaunch
