@@ -1,5 +1,9 @@
 $BaseRawUrl = "https://raw.githubusercontent.com/Johnsn0w/code_menu/refs/heads/main"
+<<<<<<< HEAD
 $BootStrapperScript = "_bootstrap_repo.ps1"
+=======
+$BootStrapperScript = "_bootstrap_repo"
+>>>>>>> 6104a0906706fe27e88f8cab60448afcc499a012
 $ScriptToLaunch = "powershell\main.ps1"
 
 . ([scriptblock]::Create(
