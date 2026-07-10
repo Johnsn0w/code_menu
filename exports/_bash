@@ -1,15 +1,3 @@
 #!/usr/bin/env bash
 
-function_names=("print_battery_stats" "git_cheatsheet" "git_ammend")
-
-print_battery_stats(){
-upower -i $(upower -e | grep BAT)
-}
-
-git_cheatsheet(){
-echo testing
-}
-
-git_ammend(){
-git commit --amend --no-edit
-}
+function_names=("")

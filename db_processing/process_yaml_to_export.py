@@ -29,9 +29,9 @@ class App:
         with open("db.yaml", "r") as db_file:
             self.db = yaml.safe_load(db_file)
         self.commands = []
-        for k, v in self.db.items():
-            self.commands.append(
-                Command(name=k, command=v["command"], tags=v.get("tags", [])))
+        # for k, v in self.db.items():
+        #     self.commands.append(
+        #         Command(name=k, command=v["command"], tags=v.get("tags", [])))
 
     def export_to_json(self):
         with open(PATHS.ps, "w") as file:

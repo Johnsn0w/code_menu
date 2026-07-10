@@ -1,13 +1,13 @@
 {
-
-    "files.watcherExclude": {
-        "**/.**": true
-    },
-    "search.exclude": {
-        "**/.**": true
-    },
-    "files.exclude": {
-        "L": true,
-        "W": true
-    }
+  "files.watcherExclude": {
+    "**/.**": true
+  },
+  "search.exclude": {
+    "**/.**": true
+  },
+  "files.exclude": {
+    "L": true,
+    "W": true
+  },
+  "window.zoomLevel": -0.4
 }

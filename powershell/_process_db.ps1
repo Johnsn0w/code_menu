@@ -6,8 +6,6 @@ function load_json_to_hash_table {
     )
     $Table = Get-Content -Raw -Path $_FilePath 
     $Table = Get-Content -Raw -Path $_FilePath | ConvertFrom-Json
-    # Log($Table)
-    # $Table = Get-Content -Raw -Path $_FilePath | ConvertFrom-Json -AsHashtable
     return $Table
 }
 

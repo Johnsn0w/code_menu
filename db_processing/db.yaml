@@ -1,49 +1,66 @@
-print battery stats:
-  command: upower -i $(upower -e | grep BAT)
-  tags: ["bash"]
-  meta: ...
+menus:
+  main menu:
+    name: ""
+    desc: ""
+    menus: []
+    commands: [ps_test]
+    scripts: [script_1, script_2]
 
-git cheatsheet:
-  command: echo testing
-  tags: ["bash"]
-  meta: ...
+scripts:
+  script_1:
+    name: "script one"
+    desc: "blah description"
+    path: "blah path"
+  script_2:
+    name: "script two"
+    desc: "blah description"
+    path: "blah path"
 
-git ammend:
-  command: git commit --amend --no-edit
-  tags: ["git", "bash", "win"]
-  meta: ...
+commands:
+  print battery stats:
+    command: upower -i $(upower -e | grep BAT)
+    tags: ["bash"]
+    meta: ...
 
-ps_test:
-  command: | 
-    Write-Output "ps test 1"
-    Write-Output "ps test 2"
-    net session
-  tags: ["ps", "win"]
-  meta: ...
+  git cheatsheet:
+    command: echo testing
+    tags: ["bash"]
+    meta: ...
 
-print env vars:
-  command: | 
+  git ammend:
+    command: git commit --amend --no-edit
+    tags: ["git", "bash", "win"]
+    meta: ...
+
+  ps_test:
+    command: |
+      Write-Output "ps test 1"
+      Write-Output "ps test 2"
+      net session
+    tags: ["ps", "win"]
+    meta: ...
+
+  print env vars:
+    command: |
       ls Env:
-  tags: ["ps", "win"]
-  meta: ...
+    tags: ["ps", "win"]
+    meta: ...
 
-reboot to uefi menu:
-  command: | 
-    # Check if running as Administrator
-    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        $scriptPath = $PSCommandPath
-        $workingDir = Get-Location  # Capture current directory
-        Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -WorkingDirectory `"$workingDir`"" -Verb RunAs
-        exit
-    }
+  reboot to uefi menu:
+    command: |
+      # Check if running as Administrator
+      if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+          $scriptPath = $PSCommandPath
+          $workingDir = Get-Location  # Capture current directory
+          Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -WorkingDirectory `"$workingDir`"" -Verb RunAs
+          exit
+      }
 
-    Read-Host "Press enter to reboot into advanced boot options....."
-    Read-Host "Ok just double-checking, press enter again....."
+      Read-Host "Press enter to reboot into advanced boot options....."
+      Read-Host "Ok just double-checking, press enter again....."
 
-    #shutdown /r /o /soft /t 0
+      #shutdown /r /o /soft /t 0
 
-    Read-Host "rebooting..."
-  tags: ["ps", "win"]
-  meta: ...
-
-
+      Read-Host "rebooting..."
+    tags: ["ps", "win"]
+    meta: ...
