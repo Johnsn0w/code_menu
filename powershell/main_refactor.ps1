@@ -2,8 +2,40 @@ using namespace System.Collections
 using namespace System.Collections.ObjectModel
 using namespace System.Collections.Generic
 using namespace System.Management.Automation.Host
+using namespace System.Runtime.CompilerServices
 Set-StrictMode -Version Latest 
 $ErrorActionPreference = "Stop"
+enum IsWildcard { true = $true; false = $false }
+
+#region typedata
+$ScriptBlock_Items = {
+    $result = [ordered]@{}
+    foreach ( $property in $this.psobject.Properties.Name ) {
+        $result[$property] = $this.$property
+    }
+    return $result.GetEnumerator()
+}
+$TypeData = @{
+    TypeName   = 'SamsHelperFuncs'
+    MemberType = 'ScriptMethod'
+    MemberName = 'Items'
+    Value      = $ScriptBlock_Items
+    Force      = $true
+}
+Update-TypeData @TypeData
+
+#endregion typedata
+
+
+function RecursivelySetTypeData([PSCustomObject]$_Object) {
+    $_Object.pstypenames.Insert(0, 'SamsHelperFuncs')
+    foreach ($item in $_Object.PSObject.properties) {
+        if ($item.Value.GetType().Name -eq "PSCustomObject") {
+            RecursivelySetTypeData($item.Value)
+            # Log($item)
+        }
+    }
+}
 
 
 class Singletons {
@@ -11,10 +43,12 @@ class Singletons {
     static [Renderer] $Renderer
     static [InputHandler] $InputHandler
     static [StateData] $StateData
+    static [DataBase] $Database
     Init() {
         [Singletons]::Renderer = [Renderer]::GetInstance()
         [Singletons]::InputHandler = [InputHandler]::GetInstance()
         [Singletons]::StateData = [StateData]::GetInstance()
+        [Singletons]::Database = [DataBase]::GetInstance()
     }
     #region init
     static [Singletons] GetInstance() {
@@ -79,9 +113,6 @@ class Renderer {
 
 }
 
-# New-Variable RendererSingleton ([Renderer]::GetInstance()) -Option Constant
-# New-Variable StateDataSingleton ([Renderer]::GetInstance()) -Option Constant
-# New-Variable InputHandlerSingleton ([Renderer]::GetInstance()) -Option Constant
 
 class InputHandler {
     #region init
@@ -134,93 +165,147 @@ class InputHandler {
     }
 
 }
-
-
-class MenuCommonInterface {
-    $Name
-    $Index
-    $Desc
-    $Tags
-    $Meta
-    Call() {}
-}
-
-class CommandItem : MenuCommonInterface {
-    $Command
-    Call() {}
-}
-
-class MenuItem : MenuCommonInterface {
-    $ChildMenus
-    $ChildCallables
-    Call() {}
-}
-
-class ScriptItem : MenuCommonInterface {
-    $Path
-    Call() {}
-}
-
-
 class DataBase {
-    [list[CommandItem]]$Commands
-    [list[MenuItem]]$Menus
-    [list[ScriptItem]]$Scripts
-    [DataBase] $MasterDB
-
-    LoadMenuItems($MenuObject) {
-        #! add cmd to clear database
-        # take a list of strings, load each one of those [command/script/...] into the db
-        foreach ($type in @("commands", "menus", "scripts")) {            
-            foreach ($itemString in $MenuObject.$type) {
-                $item = $this.MasterDB.$type.$itemString
-                $this.$type += $this.GetItemFromMasterDB($item, $type)
-            }            
+    $JsonData
+    $SelectedItemsIndex = [HashSet[object]]::new() #! note: has been changed from hashset instead of arraylist
+    #region init
+    static [Database] $Instance
+    Init() {
+    }
+    static [Database] GetInstance() {
+        if (-not [Database]::Instance) { 
+            [Database]::Instance = [Database]::new()
+            [Database]::Instance.init()
         }
+        return [Database]::Instance
     }
+    #endregion init
 
-    [object] GetItemFromMasterDB($ItemNameField, $ItemType) {
-        # $ItemType += "s"    
-        return $this.MasterDB.$ItemType.$ItemNameField
-    }
 
-    LoadItemsFromKeyword() {
-        $_Input = [Singletons]::StateData.TypedUserInput
-        $_Index = 0
-        #! add cmd to clear database
-        foreach ($type in @("commands", "scripts")) {            
-            foreach ($item in $this.MasterDB.$type) {
-                if ($item.name -like "*$_Input*") {
-                    $item.Index = $_Index
-                    $this.MasterDB.$type += $item
-                    $_Index++
+    DataBase() {
+        $this.JsonData = $this.ReadJsonToObject()
+        $this.AddPropertyToGroupItems( "commands", "CurrentlySelected", $false )
+        $this.AddPropertyToGroupItems( "scripts", "CurrentlySelected", $false )
+        $this.AddPropertyToGroupItems( "menus", "CurrentlySelected", $false )
+        $this.AddMethodToGroupItems(
+            "call",
+            "commands",
+            { $this.command | Invoke-Expression }
+        )
+        $this.AddMethodToGroupItems(
+            "call",
+            "scripts",
+            { . $this.path }
+        )
+        $this.AddMethodToGroupItems(
+            "call",
+            "menus",
+            { 
+                Write-Host "hello"
+                $this.ChildItemObjects | ForEach-Object { 
+                    $_.CurrentlySelected = $true 
                 }
-            }            
-        }
-    }
+            }
+        )
+        $this.AddObjReferencesForMenuChildItems()
 
-    [PSCustomObject] ReadJsonToObject( $Path) {
-        $JsonPath = (Split-Path $PSScriptRoot -Parent) + "\exports\_ps.json"
+    }
+    [Object] ReadJsonToObject() {
+        $JsonPath = "M:\Sam\projects\code_menu\exports\_ps.json"
         $Data = Get-Content -Raw -Path $JsonPath | ConvertFrom-Json
-        Write-Host $Data.menus.'main menu'.'child callable items'
         return $Data
     }
 
-    ParseJsonToDB() {
+    AddPropertyToGroupItems($_Group, $_Name, $_Value) {
+        $this.JsonData.$_Group.PSObject.Properties |  
+        ForEach-Object {
+            $_.Value | Add-Member `
+                -NotePropertyName $_Name `
+                -NotePropertyValue $_Value
+        }
+    }
+    
+    RefreshSelectedItemsIndex() {
+        $this.JsonData.PSObject.Properties | 
+        ForEach-Object { $_.Value.PSObject.Properties } |
+        Where-Object { $_.Value.CurrentlySelected } |
+        ForEach-Object { 
+            $this.SelectedItemsIndex.Add($_)
+        }
+    }
 
+
+    SearchAndSelectFromKeyword($_Keyword, [IsWildcard]$_IsWildcardMatch) {
+        # set CurrentlySelected = True for kw searced items
+
+        $Predicate = if ($_IsWildcardMatch) { 
+            { $args[0].Name -like "*$_Keyword*" }
+        }
+        else {
+            { $args[0].Name -eq "$_Keyword" }
+        }
+
+        $this.JsonData.PSObject.Properties | 
+        ForEach-Object { $_.Value.PSObject.Properties } |
+        Where-Object { $Predicate.Invoke($_) } |
+        ForEach-Object { 
+                
+            $_.Value.CurrentlySelected = $true
+            $this.SelectedItemsIndex.Add($_)
+        }
+
+    }
+    
+    [string] GetSelectedItemsAsString() {
+        $result = ($this.SelectedItemsIndex | Select-Object -ExpandProperty Name ) -join "`n"
+        return $result
+    }
+    
+    AddMethodToGroupItems($_MethodName, $_GroupName, $_MethodBlock) {
+        $this.JsonData.$_GroupName.PSObject.Properties |
+        ForEach-Object {
+            $_.Value | Add-Member `
+                -MemberType ScriptMethod `
+                -Name $_MethodName `
+                -Value $_MethodBlock
+        }
+    }
+
+    AddObjReferencesForMenuChildItems() {
+        foreach ($_Menu in $this.JsonData.menus.PSObject.Properties) {
+            $_Menu.Value | Add-Member `
+                -NotePropertyName "ChildItemObjects" `
+                -NotePropertyValue ([ArrayList]::new()) 
+            foreach ($_ChildGroupString in @("commands", "scripts", "menus")) {
+                $_Group = $_Menu.Value.$_ChildGroupString
+                $_Group | ForEach-Object {
+                    $_ChildObj = $this.JsonData.$_ChildGroupString.$_
+                    $_Menu.Value.ChildItemObjects.Add($_ChildObj)
+                    ""
+                }        
+                ""
+            }
+        }
     }
 
 
 }
 
-
 function Main() {
-    $__ = [Singletons]::GetInstance()
+    # $__ = [Singletons]::GetInstance()
     
-    while ($true) {
-        [Singletons]::InputHandler.HandleUserInput()
-        [Singletons]::Renderer.ReRenderWindow()
-    }
+    # while ($true) {
+    #     [Singletons]::InputHandler.HandleUserInput()
+    #     [Singletons]::Renderer.ReRenderWindow()
+    # }
+    Clear-Host
+    $__ = [Singletons]::GetInstance()
+    $x = [Singletons]::DataBase
+    RecursivelySetTypeData($x.JsonData)
+    # $x.SearchAndSelectFromKeyword("i", [IsWildcard]::true)
+    $x.JsonData.menus."main menu".call()
+    $x.RefreshSelectedItemsIndex()
+    $x.GetSelectedItemsAsString()
 
 }
 

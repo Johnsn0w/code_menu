@@ -5,7 +5,21 @@
       "desc": "",
       "menus": [],
       "commands": [
-        "ps_test"
+        "ps_test",
+        "git cheatsheet"
+      ],
+      "scripts": [
+        "script_1",
+        "script_2"
+      ]
+    },
+    "other menu": {
+      "name": "",
+      "desc": "",
+      "menus": [],
+      "commands": [
+        "ps_test",
+        "git ammend"
       ],
       "scripts": [
         "script_1",
@@ -17,7 +31,7 @@
     "script_1": {
       "name": "script one",
       "desc": "blah description",
-      "path": "blah path"
+      "path": "M:\\Sam\\projects\\code_menu\\powershell\\.tests\\.test44.ps1"
     },
     "script_2": {
       "name": "script two",
@@ -50,7 +64,7 @@
       "meta": "..."
     },
     "ps_test": {
-      "command": "Write-Output \"ps test 1\"\nWrite-Output \"ps test 2\"\nnet session\n",
+      "command": "Write-Output \"ps test 1\"\nWrite-Output \"ps test 2\"",
       "tags": [
         "ps",
         "win"

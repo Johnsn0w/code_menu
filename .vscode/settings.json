@@ -1,6 +1,7 @@
 {
   "files.watcherExclude": {
     "**/.**": true
+    "**/.log**": false
   },
   "search.exclude": {
     "**/.**": true
