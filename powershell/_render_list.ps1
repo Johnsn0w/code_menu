@@ -13,7 +13,7 @@ function RenderList {
     )
     if (-not $script:first_run) { # prevent overwriting pre-existing buffer
         [Console]::SetCursorPosition(0, 0)
-    }
+    }`
     generate_blank_window
     Write-Host $_UserInput
     $script:first_run = $false

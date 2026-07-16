@@ -6,6 +6,7 @@ using namespace System.Runtime.CompilerServices
 Set-StrictMode -Version Latest 
 $ErrorActionPreference = "Stop"
 enum IsWildcard { true = $true; false = $false }
+# [Console]::CursorVisible = $false
 
 #region typedata
 $ScriptBlock_Items = {
@@ -26,6 +27,14 @@ Update-TypeData @TypeData
 
 #endregion typedata
 
+$logfile = Join-Path $PWD ".log.txt"
+Clear-Content -Path $logfile
+function Log {
+    param( [string]$_msg)
+    $_msg | Out-File -FilePath $logfile -Append
+
+}
+
 
 function RecursivelySetTypeData([PSCustomObject]$_Object) {
     $_Object.pstypenames.Insert(0, 'SamsHelperFuncs')
@@ -44,7 +53,7 @@ class Singletons {
     static [InputHandler] $InputHandler
     static [StateData] $StateData
     static [DataBase] $Database
-    Init() {
+    static InitializeSingletons() {
         [Singletons]::Renderer = [Renderer]::GetInstance()
         [Singletons]::InputHandler = [InputHandler]::GetInstance()
         [Singletons]::StateData = [StateData]::GetInstance()
@@ -54,7 +63,7 @@ class Singletons {
     static [Singletons] GetInstance() {
         if (-not [Singletons]::Instance) { 
             [Singletons]::Instance = [Singletons]::new()
-            [Singletons]::Instance.init()
+            [Singletons]::InitializeSingletons()
         }
         return [Singletons]::Instance
     }
@@ -66,7 +75,8 @@ class StateData {
     [int]       $CursorPos
     [List[Object]] $CurrentItems
     [string]    $TypedUserInput
-    
+    [string]    $CurrentScreenText
+
     Init() {
         # $this.CurrentItems = $this._DB.menus.'main menu'
     }
@@ -80,7 +90,7 @@ class StateData {
         return [StateData]::Instance
     }
     #endregion init
-
+    
 }
 
 
@@ -88,11 +98,7 @@ class Renderer {
     #region init
     $testvar = 0
     static [Renderer] $Instance
-    Init() {
-        # $this.RenderBlankScreen()
-        # $this.ReRenderWindow()
-        
-    }
+    Init() {}
     static [Renderer] GetInstance() {
         if (-not [Renderer]::Instance) { 
             [Renderer]::Instance = [Renderer]::new()
@@ -102,14 +108,57 @@ class Renderer {
     }
     #endregion init
 
-    RenderBlankWindow() {}
+    RenderBlankWindow() {
+        $windowSize = $global:Host.UI.RawUI.WindowSize
+        $blankLines = [int]$windowSize.Height
 
+        for ($i = 1; $i -lt $blankLines; $i++) {
+            Write-Host (' ' * $global:Host.UI.RawUI.WindowSize.Width)
+        }
+        [Console]::SetCursorPosition(0, 0)
+    }
+    
     ReRenderWindow() {
-        # Jump to pos 0x 0y
-        # RenderBlankWindow()
-
+        [Console]::SetCursorPosition(0, 0)
+        $this.RenderBlankWindow()
+        Write-Host (
+            [string]([Singletons]::StateData.TypedUserInput) +
+            [string]([Singletons]::DataBase.GetSelectedItemsAsString())
+        )
+        [Console]::SetCursorPosition(0, 0)
+        $CursorPos = [Singletons]::StateData.CursorPos
+        if ($CursorPos) {
+            $this.HighlightRange(
+                ([Coordinates]::new($CursorPos[0], 0)),
+                ([Coordinates]::new($CursorPos[0], 5)),
+                ([System.ConsoleColor]::DarkYellow)
+            )
+        }
     }
 
+    HighlightRange($_Start, $_End, $_Bg) {
+        $_Start.y..$_End.y | ForEach-Object {
+            $row = $_
+            $_Start.x..$_End.x | ForEach-Object {
+                $pos = [Coordinates]::new($row, $_)
+                $char = $this.GetCharacterAtPos($pos)
+                $global:Host.UI.RawUI.CursorPosition = $pos
+                Write-Host $char -BackgroundColor $_Bg
+            }
+        }
+    }
+
+    GetCharacterAtPos($_Pos) {
+        $zero = $global:Host.UI.RawUI.WindowPosition   # top-left coord of visible window
+        $rect = New-Object Rectangle(
+            ($zero.X + $_Pos.X), 
+            ($zero.Y + $_Pos.Y),
+            ($zero.X + $_Pos.X), 
+            ($zero.Y + $_Pos.Y)
+        )
+        $char = $global:Host.UI.RawUI.GetBufferContents($rect)[0, 0].Character
+        $char
+    }
 
 }
 
@@ -139,9 +188,8 @@ class InputHandler {
             TILDE         = 192;
             CTRL          = 17;
         }
-        $temp = [Dictionary[string, int]]::new()
-        $temp.Add("UP", -1) ; $temp.Add("DOWN", 1)
-        $DIRECTION = [ReadOnlyDictionary[string, int]]::new($temp)
+
+        $DIRECTION = ([ordered]@{"UP" = -1; "DOWN" = 1 }).AsReadOnly()
 
         $UserInput = $global:Host.UI.RawUI.ReadKey("IncludeKeyDown, NoEcho")
         switch ($UserInput.VirtualKeyCode) {
@@ -151,10 +199,10 @@ class InputHandler {
                 } 
                 break 
             }
-            $K.ESC       { generate_blank_window ; Write-Host "`nExiting...`n" ; exit 0 }
-            $K.ENTER     { execute_selection ; break }
-            $K.UP        { MoveCursor $DIRECTION.UP ; break }
-            $K.DOWN      { MoveCursor $DIRECTION.DOWN; break }
+            $K.ESC       { [Singletons]::Renderer.RenderBlankWindow() ; Write-Host "`nExiting...`n" ; exit 0 }
+            $K.ENTER     { $this.ExecuteSelection() ; break }
+            $K.UP        { $this.MoveCursor($DIRECTION.UP)   ; break }
+            $K.DOWN      { $this.MoveCursor($DIRECTION.DOWN) ; break }
             $K.TILDE     { RenderItemInfo(GetSelectedItem) }
             { -not [char]::IsLetterOrDigit($_) } { break <# non-ascii #> }
             { [char]::IsWhiteSpace($_) } { break <# capture whitespace chracters #> }
@@ -163,11 +211,27 @@ class InputHandler {
             }
         }
     }
+    MoveCursor($_Direction) {
+        # $CursorIndex[0] += $_Direction
+        $CursorPos = [Singletons]::StateData.CursorPos
+        
+        $mv_result = $CursorPos + $_Direction
+
+        if ($mv_result -lt 0 ) { return }
+        if ($mv_result -gt [Singletons]::Database.SelectedItemsIndex.Count ) { return }
+        [Singletons]::StateData.CursorPos = $mv_result
+    }
+
+    ExecuteSelection() {
+        $CursorPos = [Singletons]::StateData.CursorPos
+        [Singletons]::DataBase.SelectedItemsIndex[$CursorPos].call()
+    }
 
 }
+
 class DataBase {
     $JsonData
-    $SelectedItemsIndex = [HashSet[object]]::new() #! note: has been changed from hashset instead of arraylist
+    $SelectedItemsIndex = [ArrayList]::new()
     #region init
     static [Database] $Instance
     Init() {
@@ -226,6 +290,7 @@ class DataBase {
     }
     
     RefreshSelectedItemsIndex() {
+        $this.SelectedItemsIndex.Clear()
         $this.JsonData.PSObject.Properties | 
         ForEach-Object { $_.Value.PSObject.Properties } |
         Where-Object { $_.Value.CurrentlySelected } |
@@ -262,6 +327,7 @@ class DataBase {
     }
     
     AddMethodToGroupItems($_MethodName, $_GroupName, $_MethodBlock) {
+        Write-Host ($_MethodBlock.GetType())
         $this.JsonData.$_GroupName.PSObject.Properties |
         ForEach-Object {
             $_.Value | Add-Member `
@@ -292,21 +358,16 @@ class DataBase {
 }
 
 function Main() {
-    # $__ = [Singletons]::GetInstance()
-    
-    # while ($true) {
-    #     [Singletons]::InputHandler.HandleUserInput()
-    #     [Singletons]::Renderer.ReRenderWindow()
-    # }
     Clear-Host
     $__ = [Singletons]::GetInstance()
-    $x = [Singletons]::DataBase
-    RecursivelySetTypeData($x.JsonData)
-    # $x.SearchAndSelectFromKeyword("i", [IsWildcard]::true)
-    $x.JsonData.menus."main menu".call()
-    $x.RefreshSelectedItemsIndex()
-    $x.GetSelectedItemsAsString()
-
+    [Singletons]::DataBase.SearchAndSelectFromKeyword("i", [IsWildcard]::true) #* testcode
+    [Singletons]::Renderer.RenderBlankWindow()
+    [Singletons]::Renderer.ReRenderWindow()
+    while ($true) {
+        [Singletons]::InputHandler.HandleUserInput()
+        [Singletons]::DataBase.RefreshSelectedItemsIndex() # possible redundancy, but good catch-all
+        [Singletons]::Renderer.ReRenderWindow() # possible redundancy, but good catch-all
+    }
 }
 
 Main
