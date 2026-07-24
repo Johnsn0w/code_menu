@@ -265,13 +265,13 @@ class DataBase {
             "call",
             "menus",
             { 
-                Write-Host "hello"
                 $this.ChildItemObjects | ForEach-Object { 
                     $_.CurrentlySelected = $true 
                 }
             }
         )
         $this.AddObjReferencesForMenuChildItems()
+        $this.TransposeItemsMissingNames()
 
     }
     [Object] ReadJsonToObject() {
@@ -299,6 +299,15 @@ class DataBase {
         }
     }
 
+    TransposeItemsMissingNames() {
+        $this.JsonData.PSObject.Properties | 
+        ForEach-Object { $_.Value.PSObject.Properties |
+            Where-Object { $_.Value.name -eq "" } 
+        } |
+        ForEach-Object {               
+            $_.Value.name = $_.Name
+        }
+    }
 
     SearchAndSelectFromKeyword($_Keyword, [IsWildcard]$_IsWildcardMatch) {
         # set CurrentlySelected = True for kw searced items
@@ -316,24 +325,26 @@ class DataBase {
         ForEach-Object { 
                 
             $_.Value.CurrentlySelected = $true
-            $this.SelectedItemsIndex.Add($_)
+            $this.SelectedItemsIndex.Add($_.Value)
         }
 
     }
     
     [string] GetSelectedItemsAsString() {
-        $result = ($this.SelectedItemsIndex | Select-Object -ExpandProperty Name ) -join "`n"
+        $z = $this.SelectedItemsIndex[0]
+        $result = ($this.SelectedItemsIndex | 
+            Select-Object name ) -join "`n"
         return $result
     }
     
     AddMethodToGroupItems($_MethodName, $_GroupName, $_MethodBlock) {
-        Write-Host ($_MethodBlock.GetType())
         $this.JsonData.$_GroupName.PSObject.Properties |
         ForEach-Object {
             $_.Value | Add-Member `
                 -MemberType ScriptMethod `
                 -Name $_MethodName `
                 -Value $_MethodBlock
+            ""
         }
     }
 
@@ -358,9 +369,9 @@ class DataBase {
 }
 
 function Main() {
-    Clear-Host
-    $__ = [Singletons]::GetInstance()
-    [Singletons]::DataBase.SearchAndSelectFromKeyword("i", [IsWildcard]::true) #* testcode
+    # Clear-Host
+    $x = [Singletons]::GetInstance()
+    [Singletons]::DataBase.SearchAndSelectFromKeyword("i", [IsWildcard]::true)
     [Singletons]::Renderer.RenderBlankWindow()
     [Singletons]::Renderer.ReRenderWindow()
     while ($true) {
